@@ -3,6 +3,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 
+import emailRoutes from './routes/bulkEmail.js';
+
 // Load environment variables
 dotenv.config();
 
@@ -49,6 +51,8 @@ app.get('/api', (req, res) => {
     ]
   });
 });
+
+app.use('/api/email', emailRoutes)
 
 // Error handling middleware
 app.use((err, req, res, next) => {
