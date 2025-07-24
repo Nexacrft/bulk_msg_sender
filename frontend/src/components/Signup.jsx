@@ -1,84 +1,164 @@
 import React, { useState } from "react";
-import axios from "axios";
-import { toast } from "react-toastify";
 import { useNavigate, Link } from "react-router-dom";
+import { toast } from "react-toastify";
+import axios from "axios";
 
 const Signup = () => {
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    try {
-      await axios.post("http://localhost:5000/api/auth/signup", form);
-      toast.success("Signup successful! Check your email for OTP.");
-      navigate("/verify-otp", { state: { email: form.email } });
-    } catch (err) {
-      toast.error(
-        err.response?.data?.message || "Signup failed. Try again."
-      );
+
+    // Validate form data
+    if (!formData.name || !formData.email || !formData.password) {
+      toast.error("All fields are required");
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Passwords don't match");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/api/auth/signup",
+        {
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+        }
+      );
+
+      toast.success(response.data.message);
+
+      // Navigate to OTP verification with email
+      navigate("/verify-otp", { state: { email: formData.email } });
+    } catch (error) {
+      console.error("Signup error:", error);
+      const errorMsg = error.response?.data?.message || "Registration failed";
+      toast.error(errorMsg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className=" min-w-screen min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500">
-      <div className="backdrop-blur-md bg-white/20 border border-white/30 shadow-2xl rounded-3xl p-10 w-full max-w-md mx-4 animate-fade-in">
-        <div className="flex flex-col items-center mb-6">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-pink-400 flex items-center justify-center shadow-lg mb-2">
-            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 11c0-1.657 1.343-3 3-3s3 1.343 3 3-1.343 3-3 3-3-1.343-3-3zm0 0c0-1.657-1.343-3-3-3s-3 1.343-3 3 1.343 3 3 3 3-1.343 3-3zm0 0v2m0 4h.01" /></svg>
+    <div className="w-screen min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 p-4">
+      <div className="bg-white/30 backdrop-blur-lg rounded-2xl border border-white/30 shadow-xl p-8 max-w-md w-full">
+        <h1 className="text-3xl font-bold text-center text-white mb-8">
+          Create an Account
+        </h1>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label
+              htmlFor="name"
+              className="block text-white font-medium mb-1"
+            >
+              Full Name
+            </label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              className="w-full px-4 py-3 rounded-lg bg-white/70 border border-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-blue-900"
+              placeholder="Enter your full name"
+              required
+            />
           </div>
-          <h2 className="text-3xl font-extrabold text-white drop-shadow mb-1 tracking-tight">Sign Up</h2>
-          <p className="text-white/80 text-sm">Create your account to get started.</p>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <input
-            name="name"
-            placeholder="Name"
-            value={form.name}
-            onChange={handleChange}
-            required
-            className="w-full px-4 py-2 bg-white/70 border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 placeholder-gray-500 text-gray-800 shadow-sm transition"
-          />
-          <input
-            name="email"
-            placeholder="Email"
-            value={form.email}
-            onChange={handleChange}
-            required
-            type="email"
-            className="w-full px-4 py-2 bg-white/70 border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 placeholder-gray-500 text-gray-800 shadow-sm transition"
-          />
-          <input
-            name="password"
-            placeholder="Password"
-            value={form.password}
-            onChange={handleChange}
-            required
-            type="password"
-            className="w-full px-4 py-2 bg-white/70 border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 placeholder-gray-500 text-gray-800 shadow-sm transition"
-          />
+
+          <div>
+            <label
+              htmlFor="email"
+              className="block text-white font-medium mb-1"
+            >
+              Email Address
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="w-full px-4 py-3 rounded-lg bg-white/70 border border-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-blue-900"
+              placeholder="Enter your email"
+              required
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="password"
+              className="block text-white font-medium mb-1"
+            >
+              Password
+            </label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              className="w-full px-4 py-3 rounded-lg bg-white/70 border border-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-blue-900"
+              placeholder="Create a password"
+              required
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="confirmPassword"
+              className="block text-white font-medium mb-1"
+            >
+              Confirm Password
+            </label>
+            <input
+              type="password"
+              id="confirmPassword"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              className="w-full px-4 py-3 rounded-lg bg-white/70 border border-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-blue-900"
+              placeholder="Confirm your password"
+              required
+            />
+          </div>
+
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2 rounded-lg bg-gradient-to-r from-blue-500 to-pink-500 text-white font-bold shadow-lg hover:scale-105 hover:from-pink-500 hover:to-blue-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-pink-400"
+            className={`w-full py-3 rounded-lg bg-gradient-to-r from-blue-500 to-pink-500 text-white font-semibold shadow-lg hover:from-pink-500 hover:to-blue-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-pink-400 ${
+              loading ? "opacity-70 cursor-not-allowed" : ""
+            }`}
           >
-            {loading ? (
-              <span className="animate-pulse">Signing up...</span>
-            ) : (
-              "Sign Up"
-            )}
+            {loading ? "Creating Account..." : "Sign Up"}
           </button>
         </form>
-        <div className="text-center text-sm text-white/80 mt-4">
-          Already have an account?{' '}
-          <Link to="/login" className="text-pink-200 hover:underline font-semibold">
-            Login
+
+        <div className="mt-6 text-center text-white">
+          Already have an account?{" "}
+          <Link
+            to="/login"
+            className="font-semibold text-blue-200 hover:text-white transition-colors"
+          >
+            Log in
           </Link>
         </div>
       </div>
