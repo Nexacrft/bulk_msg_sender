@@ -3,7 +3,6 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { useNavigate, Link } from "react-router-dom";
 import { UserContext } from "../context/UserContext";
-import { GoogleLogin } from "@react-oauth/google";
 
 const Login = () => {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -28,11 +27,6 @@ const Login = () => {
       );
     }
     setLoading(false);
-  };
-
-  // Google login handler
-  const handleGoogleSuccess = async (credentialResponse) => {
-    window.location.href = "http://localhost:5000/api/auth/google";
   };
 
   return (
@@ -76,22 +70,7 @@ const Login = () => {
             )}
           </button>
         </form>
-        <div className="flex items-center my-6">
-          <div className="flex-grow h-px bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 opacity-50" />
-          <span className="mx-3 text-white/70 font-semibold">or</span>
-          <div className="flex-grow h-px bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 opacity-50" />
-        </div>
-        <div className="flex justify-center mb-4">
-          <button
-            type="button"
-            onClick={handleGoogleSuccess}
-            className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg shadow hover:bg-gray-100 transition border border-gray-200"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 48 48"><g><path fill="#4285F4" d="M24 9.5c3.54 0 6.7 1.22 9.19 3.22l6.85-6.85C36.68 2.7 30.77 0 24 0 14.82 0 6.71 5.82 2.69 14.09l7.98 6.2C12.13 13.99 17.56 9.5 24 9.5z"/><path fill="#34A853" d="M46.1 24.55c0-1.64-.15-3.22-.42-4.74H24v9.01h12.42c-.54 2.9-2.18 5.36-4.65 7.04l7.19 5.6C43.98 37.13 46.1 31.3 46.1 24.55z"/><path fill="#FBBC05" d="M10.67 28.29a14.5 14.5 0 0 1 0-8.58l-7.98-6.2A23.94 23.94 0 0 0 0 24c0 3.77.9 7.34 2.69 10.49l7.98-6.2z"/><path fill="#EA4335" d="M24 48c6.48 0 11.93-2.15 15.9-5.85l-7.19-5.6c-2.01 1.35-4.6 2.16-8.71 2.16-6.44 0-11.87-4.49-13.33-10.49l-7.98 6.2C6.71 42.18 14.82 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></g></svg>
-            <span>Sign in with Google</span>
-          </button>
-        </div>
-        <div className="text-center text-sm text-white/80">
+        <div className="text-center text-sm text-white/80 mt-6">
           Don't have an account?{' '}
           <Link to="/signup" className="text-pink-200 hover:underline font-semibold">
             Sign Up
@@ -103,3 +82,4 @@ const Login = () => {
 };
 
 export default Login;
+    
