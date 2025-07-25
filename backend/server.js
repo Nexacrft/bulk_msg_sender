@@ -1,5 +1,10 @@
 import express from 'express';
 import mongoose from 'mongoose';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import passport from './config/passport.js';
+import authRoutes from './routes/auth.js';
+import bulkEmailRoutes from './routes/bulkEmail.js';
 
 // Load environment variables
 dotenv.config();
@@ -50,10 +55,15 @@ app.get('/api', (req, res) => {
     endpoints: [
       'GET /api/health - Health check',
       'POST /api/auth/register - User registration',
-      'POST /api/auth/login - User login'
+      'POST /api/auth/login - User login',
+      'POST /api/email/send-bulk - Send bulk email'
     ]
   });
 });
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/email', bulkEmailRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

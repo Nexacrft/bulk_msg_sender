@@ -44,7 +44,7 @@ export const sendBulkEmail = async (req, res) => {
       .then(result => console.log('Sending completed:', result))
       .catch(error => console.error('Async sending error:', error));
 
-    res.json({
+    res.status(200).json({
       success: true,
       message: emailId ? "Re-processing queued" : "New email job created and sending started",
       emailId: emailDoc._id,
