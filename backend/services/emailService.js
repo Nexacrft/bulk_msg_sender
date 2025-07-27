@@ -1,122 +1,103 @@
-import createTransporter from '../config/emailConfig.js';
-import Email from '../models/Email.js'; // Your schema file
+import nodemailer from 'nodemailer';
+import Email from '../models/Email.js';
 
 class EmailService {
   constructor() {
-    this.transporter = createTransporter();
+    this.transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false // Helps with self-signed certificates
+      }
+    });
   }
 
-  // Verify email configuration
-  async verifyConnection() {
+  // Method to personalize email content with recipient's name
+  personalizeContent(content, recipientName) {
+    if (!recipientName) return content;
+    return content.replace(/{{name}}/g, recipientName);
+  }
+
+  // Send email to a single recipient
+  async sendEmail(recipient, subject, content) {
+    const personalizedContent = this.personalizeContent(content, recipient.name);
+    
+    const mailOptions = {
+      from: `"Bulk Email Sender" <${process.env.SMTP_USER}>`,
+      to: recipient.email,
+      subject: subject,
+      html: personalizedContent
+    };
+
     try {
       await this.transporter.verify();
-      console.log('Email server connection verified');
-      return true;
+      const info = await this.transporter.sendMail(mailOptions);
+      console.log(`Email sent to ${recipient.email}: ${info.messageId}`);
+      return { success: true, messageId: info.messageId };
     } catch (error) {
-      console.error('Email server connection failed:', error);
-      return false;
-    }
-  }
-
-  // Send single email
-  async sendSingleEmail(recipient, subject, content) {
-    try {
-      const personalizedContent = content.replace(/{{name}}/g, recipient.name || 'Valued Customer');
-      
-      const mailOptions = {
-        from: `${process.env.FROM_NAME} <${process.env.FROM_EMAIL}>`,
-        to: recipient.email,
-        subject: subject,
-        html: personalizedContent,
-      };
-
-      const result = await this.transporter.sendMail(mailOptions);
-      return { success: true, messageId: result.messageId };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  }
-
-  // Process email batch
-  async sendBulkEmails(emailId) {
-    try {
-      // Fetch email document
-      const emailDocument = await Email.findById(emailId);
-      if (!emailDocument) {
-        throw new Error('Email document not found');
-      }
-
-      // Update status to sending
-      emailDocument.status = 'sending';
-      await emailDocument.save();
-
-      // Process each recipient individually
-      for (let i = 0; i < emailDocument.recipients.length; i++) {
-        const recipient = emailDocument.recipients[i];
-        
-        // Skip if already processed
-        if (recipient.status !== 'pending') {
-          continue;
-        }
-
-        const result = await this.sendSingleEmail(
-          recipient, 
-          emailDocument.subject, 
-          emailDocument.content
-        );
-
-        // Update recipient status
-        if (result.success) {
-          emailDocument.recipients[i].status = 'sent';
-          emailDocument.recipients[i].sentAt = new Date();
-          emailDocument.recipients[i].error = undefined;
-        } else {
-          emailDocument.recipients[i].status = 'failed';
-          emailDocument.recipients[i].error = result.error;
-        }
-
-        // Save progress after each email
-        await emailDocument.save();
-
-        // Add small delay to avoid rate limiting
-        await this.delay(100);
-      }
-
-      // Determine final status
-      const hasFailures = emailDocument.recipients.some(r => r.status === 'failed');
-      const allSent = emailDocument.recipients.every(r => r.status === 'sent');
-      
-      if (allSent) {
-        emailDocument.status = 'completed';
-      } else if (hasFailures) {
-        emailDocument.status = 'failed';
-      } else {
-        emailDocument.status = 'completed';
-      }
-
-      await emailDocument.save();
-
-      return {
-        success: true,
-        status: emailDocument.status,
-        sentCount: emailDocument.sentCount,
-        failedCount: emailDocument.failedCount,
-        totalRecipients: emailDocument.totalRecipients
-      };
-
-    } catch (error) {
-      // Update email status to failed
-      if (emailId) {
-        await Email.findByIdAndUpdate(emailId, { status: 'failed' });
-      }
+      console.error(`Failed to send email to ${recipient.email}:`, error);
       throw error;
     }
   }
 
-  // Utility delay function
-  delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+  // Send bulk emails (one by one to each recipient)
+  async sendBulkEmails(emailId) {
+    try {
+      const emailDoc = await Email.findById(emailId);
+      if (!emailDoc) {
+        throw new Error(`Email job with ID ${emailId} not found`);
+      }
+
+      // Update status to sending
+      emailDoc.status = 'sending';
+      await emailDoc.save();
+
+      const { subject, content, recipients } = emailDoc;
+      
+      // Process each recipient individually
+      for (const recipient of recipients) {
+        if (recipient.status !== 'pending') continue;
+        
+        try {
+          await this.sendEmail(recipient, subject, content);
+          
+          // Update recipient status
+          recipient.status = 'sent';
+          recipient.sentAt = new Date();
+          emailDoc.sentCount += 1;
+        } catch (error) {
+          // Update recipient with error
+          recipient.status = 'failed';
+          recipient.error = error.message;
+          emailDoc.failedCount += 1;
+        }
+        
+        // Save after each email to track progress
+        await emailDoc.save();
+      }
+
+      // Update completion status
+      emailDoc.status = emailDoc.failedCount === 0 ? 'completed' : 'failed';
+      emailDoc.completedAt = new Date();
+      await emailDoc.save();
+
+      return {
+        emailId: emailDoc._id,
+        status: emailDoc.status,
+        sentCount: emailDoc.sentCount,
+        failedCount: emailDoc.failedCount
+      };
+    } catch (error) {
+      console.error('Bulk email sending error:', error);
+      throw error;
+    }
   }
 }
 
 export default new EmailService();
+        

@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { BACKEND_URL } from "../constant";
 
 const BulkEmail = () => {
   const [subject, setSubject] = useState("");
@@ -57,14 +56,12 @@ const BulkEmail = () => {
         }))
       };
 
-
-      const response = await axios.post(`${BACKEND_URL}/email/send-bulk`, payload, {
+      // Use http://localhost:5000/api/email/send-bulk endpoint directly
+      const response = await axios.post("http://localhost:5000/api/email/send-bulk", payload, {
         headers: {
           'Content-Type': 'application/json',
         }
       });
-
-      
 
       if (response.status === 200 || response.status === 201) {
         toast.success("Emails sent successfully!");
