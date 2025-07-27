@@ -4,8 +4,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import passport from './config/passport.js';
 import authRoutes from './routes/auth.js';
-import bulkEmailRoutes from './routes/bulkEmail.js';
 import groupEmailRoutes from './routes/groupEmail.js';
+import bulkEmailRoutes from './routes/bulkEmail.js';
 
 // Load environment variables
 dotenv.config();
@@ -64,8 +64,8 @@ app.get('/api', (req, res) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/groups', groupEmailRoutes);
 app.use('/api/email', bulkEmailRoutes);
-app.use('/api/groupEmail', groupEmailRoutes);
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
