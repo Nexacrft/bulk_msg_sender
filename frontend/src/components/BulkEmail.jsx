@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { UserContext } from "../context/UserContext";
 
 const BulkEmail = () => {
   const [subject, setSubject] = useState("");
@@ -12,6 +13,15 @@ const BulkEmail = () => {
   const [pdf, setPdf] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { user, token } = useContext(UserContext); // Get user and token from context
+
+  // Check authentication on mount
+  useEffect(() => {
+    if (!user || !token) {
+      toast.error("Please log in to send emails");
+      navigate("/login");
+    }
+  }, [user, token, navigate]);
 
   const addRecipient = () => {
     if (
@@ -43,6 +53,11 @@ const BulkEmail = () => {
       toast.error("Please add at least one recipient");
       return;
     }
+    if (!token) {
+      toast.error("Authentication token missing. Please log in again.");
+      navigate('/login');
+      return;
+    }
 
     setLoading(true);
 
@@ -56,14 +71,19 @@ const BulkEmail = () => {
         }))
       };
 
-      // Use http://localhost:5000/api/email/send-bulk endpoint directly
-      const response = await axios.post("http://localhost:5000/api/email/send-bulk", payload, {
-        headers: {
-          'Content-Type': 'application/json',
+      // Add Authorization header with token
+      const response = await axios.post(
+        "http://localhost:5000/api/email/send-bulk", 
+        payload, 
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` // Include the token
+          }
         }
-      });
+      );
 
-      if (response.status === 200 || response.status === 201) {
+      if (response.data.success) {
         toast.success("Emails sent successfully!");
         // Reset form after successful send
         setSubject("");
@@ -75,7 +95,14 @@ const BulkEmail = () => {
       console.error("Error sending emails:", error);
       
       if (error.response) {
-        // Server responded with error status
+        // Handle auth errors specifically
+        if (error.response.status === 401) {
+          toast.error("Authentication error. Please log in again.");
+          navigate('/login');
+          return;
+        }
+        
+        // Other server errors
         const errorMessage = error.response.data?.message || "Failed to send emails. Please try again.";
         toast.error(errorMessage);
       } else if (error.request) {
@@ -94,6 +121,16 @@ const BulkEmail = () => {
     <div className="min-w-screen min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 py-10 px-2">
       <div className="w-full max-w-xl bg-white/30 border-4 border-transparent bg-clip-padding backdrop-blur-2xl rounded-3xl shadow-2xl p-8 flex flex-col items-center animate-fade-in relative">
         <button onClick={() => navigate("/dashboard")} className="self-start mb-4 text-blue-600 hover:underline font-semibold">&larr; Back to Dashboard</button>
+
+        {/* Show current user info */}
+        {user && (
+          <div className="w-full mb-4 bg-white/50 p-3 rounded-lg text-center">
+            <p className="text-blue-700">
+              Sending as: <span className="font-semibold">{user.name} ({user.email})</span>
+            </p>
+          </div>
+        )}
+
         <div className="flex flex-col items-center mb-4">
           <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-pink-400 flex items-center justify-center shadow-lg mb-2 animate-fade-in">
             <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16 12H8m8 0a4 4 0 11-8 0 8 8 0 1116 0 8 8 0 01-16 0z" /></svg>

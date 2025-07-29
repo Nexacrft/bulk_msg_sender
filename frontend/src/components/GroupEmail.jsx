@@ -35,15 +35,39 @@ const GroupEmail = () => {
   const fetchGroups = async () => {
     setLoadingGroups(true);
     try {
+      // Ensure token is included in the request
+      // console.log("Using token:", token);
+      
       const response = await axios.get("http://localhost:5000/api/groups", {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
+      
       if (response.data.success) {
         setGroups(response.data.groups);
+        console.log("Groups loaded:", response.data.groups);
       }
     } catch (error) {
       console.error("Error fetching groups:", error);
-      toast.error("Failed to load email groups");
+      
+      // More detailed error logging
+      if (error.response) {
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+        
+        if (error.response.status === 401) {
+          toast.error("Authentication error. Please login again.");
+          navigate('/login');
+        } else {
+          toast.error(`Failed to load email groups: ${error.response.data.message || 'Server error'}`);
+        }
+      } else if (error.request) {
+        toast.error("Network error. Please check your connection.");
+      } else {
+        toast.error("An unexpected error occurred.");
+      }
     } finally {
       setLoadingGroups(false);
     }
