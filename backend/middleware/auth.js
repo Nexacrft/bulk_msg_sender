@@ -26,8 +26,17 @@ export const protect = async (req, res, next) => {
       
       // Add user to request
       req.user = user;
+      
+      // Debug output
+      console.log("Authenticated user:", {
+        id: user._id,
+        email: user.email,
+        name: user.name
+      });
+      
       next();
     } catch (err) {
+      console.error("Token verification error:", err);
       return res.status(401).json({ message: 'Not authorized, token failed' });
     }
   } catch (err) {
